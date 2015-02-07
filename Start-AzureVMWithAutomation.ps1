@@ -12,6 +12,8 @@
         -serviceName`"testservice1"
 #>
 
+
+
 workflow Start-AzureVMWithAutomation {
 
     Param (
@@ -21,11 +23,37 @@ workflow Start-AzureVMWithAutomation {
 
         # The name of VM to start
         [Parameter(Mandatory=$True)]
-        [String]$vmName
+        [String]$vmName,
+
+        # Due to no support of day exclusion for an automation, add days
+        # parameter to choice when this script should run
+        [Parameter(Mandatory=$True)]
+        [ValidateCount(0,7)]
+        [Array]$runningDays
     )
 
     # Verbose setting
     $VerbosePreference = "Continue"
+
+    # Build array of short day names
+    $validDays = (new-object system.globalization.datetimeformatinfo).AbbreviatedDayNames
+
+    # Validate user entry
+    Foreach ($day in $runningDays) {
+        if ($validDays -notcontains $day) {
+            Write-Error "'$day' is an invalid abbreviated day, exit"
+            return $false
+        }
+    }
+
+    # Check if tash should run this day
+    $today = Get-Date -format ddd
+    if ($runningDays -notcontains $today) {
+        Write-Output "'$today' is not a running day, exit"
+        return $true
+    } else {
+        Write-Verbose "'$today' is a running day, continue"
+    }
 
     # Get subscription informations for automation
     $subscriptionName = Get-AutomationVariable -Name "SubscriptionName"
